@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'bootstrap4',
+    'channels',
 
     'game',
 ]
@@ -54,6 +55,8 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'chess.urls'
+
+ASGI_APPLICATION = "chess.asgi.application"
 
 TEMPLATES = [
     {

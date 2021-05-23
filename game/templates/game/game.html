@@ -1,0 +1,603 @@
+{% extends "base.html" %}
+{% load extra_polls %}
+{% load static %}
+{% block style %}
+    <style>
+        .chess-board { border-spacing: 0; border-collapse: collapse;  }
+        .chess-board th { padding: .5em; }
+        .chess-board th + th { border-bottom: 1px solid #000; }
+        .chess-board td:first-child { border-left: 1px solid #000; }
+        .chess-board tr:first-child { border-top: 1px solid #000; }
+        .chess-board td:last-child { border-right: 1px solid #000; }
+        .chess-board td:hover { background-color: rgb(66, 132, 161); }
+        .chess-board tr:last-child td { border-bottom: 1px solid; }
+        .chess-board th:empty { border: none; }
+        .chess-board td { width: 10vmin; height: 10vmin; text-align: center; font-size: 5vmax; line-height: 0; }
+        .chess-board td img {
+            max-width:100%;
+            max-height:100%;
+            position: relative;
+        }
+        .chess-board td span {
+            width: 3vmin; 
+            height: 3vmin;
+            background-color: rgb(33, 48, 255, 0.7);
+            border-radius: 40%;
+            display: inline-block;
+            position: center;
+        }
+        .chess-board td { -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
+        .chess-board .light { background: #eee; }
+        .chess-board .dark { background: rgb(122, 119, 119); }
+        .chess-board .selected { background: rgb(176, 152, 63); }
+        .chess-board .danger_black { background: rgb(180,100,101); }
+        .chess-board .danger_white { background: rgb(238,160,161); }
+    </style>
+{% endblock %}
+{% block content %}
+    <table id="chess-board" class="chess-board" align="center">
+        
+    </table>
+    <br>
+    <center><a onclick="toggle_board_func();"><button>Toggle</button></a></center>
+{% endblock %}
+
+{% block script %}
+    <script>
+    const rows = ['8', '7', '6', '5', '4', '3', '2', '1']
+    const rows_reverse = ['1', '2', '3', '4', '5', '6', '7', '8']
+    const columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+    const columns_reverse = ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
+    const pons_position = JSON.parse("{{ game_details.pons_position|convertJSON }}")
+    const pon_details = JSON.parse("{{ game_details.pons_details|convertJSON }}")
+    const current_user_pk = "{{ user.pk }}"
+    const player_white_pk = "{{ game_details.player_white.pk }}"
+    const player_black_pk = "{{ game_details.player_black.pk }}"
+    
+    let toggle_board = {{ game_details.toggle_board|booleanConvert }}
+    let turn = "{{ game_details.turn }}"
+    let pon_clicked = null
+    let color = 'light'
+    let movable_positions = []
+    let previous_clicked_pon = null
+
+    console.log("player white:", "{{ game_details.player_white }}")
+    console.log("player black:", "{{ game_details.player_black }}")
+    console.log("current user:", "{{ user }}")
+    console.log("turn:", "{{ game_details.turn }}")
+    
+    const toggle_color = () => {
+        if(color == 'light') {
+            color = 'dark'
+        }
+        else {
+            color = 'light'
+        }
+    }
+
+    const toggle_turn = () => {
+        if(turn == 'white') {
+            turn = 'black'
+        }
+        else {
+            turn = 'white'
+        }
+    }
+
+    const toggle_board_func = () => {
+        toggle_board = !toggle_board
+        loadboard()
+    }
+
+    const move_up = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color) => {
+        let moves = []
+        if(parseInt(ival) == 8) {
+            return []
+        }
+        for(let i=parseInt(ival)+1; i<parseInt(ival)+max_place+1; i++) {
+            let element = document.getElementById(`${jval}${i}`)
+            if (element.innerHTML){
+                if (ignore_opponent_pon) {
+                    break;
+                }
+                else {
+                    if (element.getAttribute('poncolor') == pon_color) {
+                        break;
+                    }
+                    else {
+                        moves.push(element)
+                        break;
+                    }
+                }
+            }
+            else {
+                moves.push(element)
+            }
+            if(i == 8) {
+                break
+            }
+        }
+        return moves
+    }
+
+    move_left_top = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color) => {
+        let moves = []
+        iindex = rows.indexOf(ival)
+        jindex = columns.indexOf(jval)
+        if(jindex==0) {
+            return []
+        }
+        if(iindex==0) {
+            return []
+        }
+        for(let i=iindex-1, j=jindex-1; i>iindex-max_place-1, j>jindex-max_place-1; i--,j--) {
+            let element = document.getElementById(`${columns[j]}${rows[i]}`)
+            if (element.innerHTML){
+                if (ignore_opponent_pon) {
+                    break;
+                }
+                else {
+                    if (element.getAttribute('poncolor') == pon_color) {
+                        break;
+                    }
+                    else {
+                        moves.push(element)
+                        break;
+                    }
+                }
+            }
+            else {
+                moves.push(element)
+            }
+            if(i==0 || j==0) {
+                break
+            }
+        }
+        return moves
+    }
+
+    move_left_bottom = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color) => {
+        let moves = []
+        iindex = rows.indexOf(ival)
+        jindex = columns.indexOf(jval)
+        if(jindex==0) {
+            return []
+        }
+        if(iindex==7) {
+            return []
+        }
+        for(let i=iindex+1, j=jindex-1; i<iindex+max_place+1, j>jindex-max_place-1; i++,j--) {
+            let element = document.getElementById(`${columns[j]}${rows[i]}`)
+            if (element.innerHTML){
+                if (ignore_opponent_pon) {
+                    break;
+                }
+                else {
+                    if (element.getAttribute('poncolor') == pon_color) {
+                        break;
+                    }
+                    else {
+                        moves.push(element)
+                        break;
+                    }
+                }
+            }
+            else {
+                moves.push(element)
+            }
+            if(i==7 || j==0) {
+                break
+            }
+        }
+        return moves
+    }
+
+    move_left = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color) => {
+        let moves = []
+        jindex = columns.indexOf(jval)
+        if(jindex==0) {
+            return []
+        }
+        for(let j=jindex-1; j>jindex-max_place-1; j--) {
+            let element = document.getElementById(`${columns[j]}${ival}`)
+            if (element.innerHTML){
+                if (ignore_opponent_pon) {
+                    break;
+                }
+                else {
+                    if (element.getAttribute('poncolor') == pon_color) {
+                        break;
+                    }
+                    else {
+                        moves.push(element)
+                        break;
+                    }
+                }
+            }
+            else {
+                moves.push(element)
+            }
+            if(j==0) {
+                break
+            }
+        }
+        return moves
+    }
+
+    move_right_top = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color) => {
+        let moves = []
+        iindex = rows.indexOf(ival)
+        jindex = columns.indexOf(jval)
+        if(jindex==7) {
+            return []
+        }
+        if(iindex==0) {
+            return []
+        }
+        for(let i=iindex-1, j=jindex+1; i>iindex-max_place-1, j<jindex+max_place+1; i--,j++) {
+            let element = document.getElementById(`${columns[j]}${rows[i]}`)
+            if (element.innerHTML){
+                if (ignore_opponent_pon) {
+                    break;
+                }
+                else {
+                    if (element.getAttribute('poncolor') == pon_color) {
+                        break;
+                    }
+                    else {
+                        moves.push(element)
+                        break;
+                    }
+                }
+            }
+            else {
+                moves.push(element)
+            }
+            if(i==0 || j==7) {
+                break
+            }
+        }
+        return moves
+    }
+    
+    move_right = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color) => {
+        let moves = []
+        jindex = columns.indexOf(jval)
+        if(jindex==7) {
+            return []
+        }
+        for(let j=jindex+1; j<jindex+max_place+1; j++) {
+            let element = document.getElementById(`${columns[j]}${ival}`)
+            if (element.innerHTML){
+                if (ignore_opponent_pon) {
+                    break;
+                }
+                else {
+                    if (element.getAttribute('poncolor') == pon_color) {
+                        break;
+                    }
+                    else {
+                        moves.push(element)
+                        break;
+                    }
+                }
+            }
+            else {
+                moves.push(element)
+            }
+            if(j==7) {
+                break
+            }
+        }
+        return moves
+    }
+
+    move_right_bottom = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color) => {
+        let moves = []
+        iindex = rows.indexOf(ival)
+        jindex = columns.indexOf(jval)
+        if(jindex==7) {
+            return []
+        }
+        if(iindex==7) {
+            return []
+        }
+        for(let i=iindex+1, j=jindex+1; i<iindex+max_place+1, j<jindex+max_place+1; i++,j++) {
+            let element = document.getElementById(`${columns[j]}${rows[i]}`)
+            if (element.innerHTML){
+                if (ignore_opponent_pon) {
+                    break;
+                }
+                else {
+                    if (element.getAttribute('poncolor') == pon_color) {
+                        break;
+                    }
+                    else {
+                        moves.push(element)
+                        break;
+                    }
+                }
+            }
+            else {
+                moves.push(element)
+            }
+            if(i==7 || j==7) {
+                break
+            }
+        }
+        return moves
+    }
+
+    const move_down = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color) => {
+        let moves = []
+        if(parseInt(ival) == 1) {
+            return []
+        }
+        for(let i=parseInt(ival)-1; i>parseInt(ival)-max_place-1; i--) {
+            let element = document.getElementById(`${jval}${i}`)
+            if (element.innerHTML){
+                if (ignore_opponent_pon) {
+                    break;
+                }
+                else {
+                    if (element.getAttribute('poncolor') == pon_color) {
+                        break;
+                    }
+                    else {
+                        moves.push(element)
+                        break;
+                    }
+                }
+            }
+            else {
+                moves.push(element)
+            }
+            if (i == 1) {
+                break
+            }
+        }
+        return moves
+    }
+
+    const calculate_move = () => {
+        let can_move = []
+        let element = null
+        if (pon_clicked.getAttribute('ponvalue') == 'soldier') {
+            if (pon_clicked.getAttribute('poncolor') == 'white') {
+                if (pon_clicked.getAttribute('ival') == 2) {
+                    can_move = move_up(2, true, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor'))
+                }
+                else {
+                    can_move = move_up(1, true, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor'))
+                }
+                left_diagonal = move_left_top(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor'))[0]
+                right_diagonal = move_right_top(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor'))[0]
+                if (left_diagonal && left_diagonal.getAttribute('poncolor') && left_diagonal.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                    can_move.push(left_diagonal)
+                }
+                if (right_diagonal && right_diagonal.getAttribute('poncolor') && right_diagonal.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                    can_move.push(right_diagonal)
+                }
+                return can_move
+            }
+            else {
+                if (pon_clicked.getAttribute('ival') == 7) {
+                    can_move = move_down(2, true, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor'))
+                }
+                else {
+                    can_move = move_down(1, true, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor'))
+                }
+                left_diagonal = move_left_bottom(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor'))[0]
+                right_diagonal = move_right_bottom(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor'))[0]
+                if (left_diagonal && left_diagonal.getAttribute('poncolor') && left_diagonal.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                    can_move.push(left_diagonal)
+                }
+                if (right_diagonal && right_diagonal.getAttribute('poncolor') && right_diagonal.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                    can_move.push(right_diagonal)
+                }
+                return can_move
+            }
+        }
+        else if (pon_clicked.getAttribute('ponvalue') == 'knight') {
+            let iindex = rows.indexOf(pon_clicked.getAttribute('ival'))
+            let jindex = columns.indexOf(pon_clicked.getAttribute('jval'))
+            if (iindex+2 < 8 && jindex+1 < 8) {
+                element = document.getElementById(`${columns[jindex+1]}${rows[iindex+2]}`)
+                if(!element.getAttribute('poncolor') || element.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                    can_move.push(element)
+                }
+            }
+            if (iindex+2 < 8 && jindex-1 > -1) {
+                element = document.getElementById(`${columns[jindex-1]}${rows[iindex+2]}`)
+                if(!element.getAttribute('poncolor') || element.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                    can_move.push(element)
+                }
+            }
+            if (iindex-2 > -1 && jindex+1 < 8) {
+                element = document.getElementById(`${columns[jindex+1]}${rows[iindex-2]}`)
+                if(!element.getAttribute('poncolor') || element.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                    can_move.push(element)
+                }
+            }
+            if (iindex-2 > -1 && jindex-1 > -1) {
+                element = document.getElementById(`${columns[jindex-1]}${rows[iindex-2]}`)
+                if(!element.getAttribute('poncolor') || element.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                    can_move.push(element)
+                }
+            }
+            if (iindex-1 > -1 && jindex-2 > -1) {
+                element = document.getElementById(`${columns[jindex-2]}${rows[iindex-1]}`)
+                if(!element.getAttribute('poncolor') || element.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                    can_move.push(element)
+                }
+            }
+            if (iindex+1 < 8 && jindex-2 > -1) {
+                element = document.getElementById(`${columns[jindex-2]}${rows[iindex+1]}`)
+                if(!element.getAttribute('poncolor') || element.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                    can_move.push(element)
+                }
+            }
+            if (iindex-1 > -1 && jindex+2 < 8) {
+                element = document.getElementById(`${columns[jindex+2]}${rows[iindex-1]}`)
+                if(!element.getAttribute('poncolor') || element.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                    can_move.push(element)
+                }
+            }
+            if (iindex+1 < 8 && jindex+2 < 8) {
+                element = document.getElementById(`${columns[jindex+2]}${rows[iindex+1]}`)
+                if(!element.getAttribute('poncolor') || element.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                    can_move.push(element)
+                }
+            }
+            return can_move
+        }
+        else if (pon_clicked.getAttribute('ponvalue') == 'queen') {
+            can_move = can_move.concat(move_up(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            can_move = can_move.concat(move_down(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            can_move = can_move.concat(move_left(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            can_move = can_move.concat(move_right(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            can_move = can_move.concat(move_left_top(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            can_move = can_move.concat(move_right_top(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            can_move = can_move.concat(move_left_bottom(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            can_move = can_move.concat(move_right_bottom(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            return can_move
+        }
+        else if (pon_clicked.getAttribute('ponvalue') == 'bishop') {
+            can_move = can_move.concat(move_left_top(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            can_move = can_move.concat(move_right_top(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            can_move = can_move.concat(move_left_bottom(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            can_move = can_move.concat(move_right_bottom(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            return can_move
+        }
+        else if (pon_clicked.getAttribute('ponvalue') == 'rook') {
+            can_move = can_move.concat(move_up(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            can_move = can_move.concat(move_down(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            can_move = can_move.concat(move_left(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            can_move = can_move.concat(move_right(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            return can_move
+        }
+        else if (pon_clicked.getAttribute('ponvalue') == 'king') {
+            can_move = can_move.concat(move_up(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            can_move = can_move.concat(move_down(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            can_move = can_move.concat(move_left(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            can_move = can_move.concat(move_right(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            can_move = can_move.concat(move_left_top(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            can_move = can_move.concat(move_right_top(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            can_move = can_move.concat(move_left_bottom(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            can_move = can_move.concat(move_right_bottom(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+            return can_move
+        }
+    }
+
+    const board_clicked = (position) => {
+        if ((turn == 'white' && player_white_pk == current_user_pk) || (turn == 'black' && player_black_pk == current_user_pk)) {
+            let get_selected = document.getElementsByClassName('selected')
+            for(let element of get_selected) {
+                element.className = element.getAttribute('color')
+            }
+            pon_clicked = document.getElementById(position)
+            for(const pos of movable_positions) {
+                if(pos.getAttribute('poncolor')) {
+                    pos.className = pos.getAttribute('color')
+                }
+                else {
+                    pos.innerHTML = ''
+                }
+            }
+            if(pon_clicked.getAttribute('poncolor') == turn) {
+                pon_clicked.className = "selected"
+                movable_positions = calculate_move()
+                for (const move of movable_positions) {
+                    if(move.getAttribute('poncolor')) {
+                        if(move.className == 'dark') {
+                            move.className = 'danger_black'
+                        }
+                        else {
+                            move.className = 'danger_white'
+                        }
+                    }
+                    else {
+                        move.innerHTML = '<span></span>'
+                    }
+                }
+                previous_clicked_pon = pon_clicked
+            }
+            else {
+                if (previous_clicked_pon && previous_clicked_pon.getAttribute('poncolor')) {
+                    let moved_position = document.getElementById(position)
+                    if (movable_positions.includes(moved_position)) {
+                        let innerHTML = previous_clicked_pon.innerHTML
+                        let poncolor = previous_clicked_pon.getAttribute('poncolor')
+                        let ponvalue = previous_clicked_pon.getAttribute('ponvalue')
+                        previous_clicked_pon.removeAttribute('poncolor')
+                        previous_clicked_pon.removeAttribute('ponvalue')
+                        previous_clicked_pon.innerHTML = ''
+                        console.log(ponvalue)
+                        console.log(poncolor)
+                        console.log(moved_position.getAttribute('ival'))
+                        if(ponvalue == 'soldier') {
+                            if(moved_position.getAttribute('ival') == '1' || moved_position.getAttribute('ival' == '8')) {
+                                moved_position.setAttribute('poncolor', poncolor)
+                                moved_position.setAttribute('ponvalue', 'queen')
+                                moved_position.innerHTML = `<img src="/static/images/pons/${poncolor}_${'queen'}.png" alt="">`
+                                toggle_turn()
+                                return
+                            }
+                        }
+                        moved_position.setAttribute('poncolor', poncolor)
+                        moved_position.setAttribute('ponvalue', ponvalue)
+                        moved_position.innerHTML = innerHTML
+                        toggle_turn()
+                        
+                        //condition here for soldier reaching top
+                    }
+                }
+            }
+        }
+    }
+
+    const loadboard = () => {
+        table = document.getElementById('chess-board')
+        let table_content = "<tbody>"
+        if(toggle_board) {
+            for(const i of rows_reverse) {
+                table_content += "<tr>"
+                for (const j of columns_reverse) {
+                    table_content += `<td onclick="board_clicked('${j}${i}')" class="${color}" ival="${i}" jval="${j}" id="${j}${i}" color="${color}"></td>`
+                    toggle_color(color)
+                }
+                toggle_color(color)
+                table_content += "</tr>"
+            }
+        }
+        else {
+            for(const i of rows) {
+                table_content += "<tr>"
+                for (const j of columns) {
+                    table_content += `<td onclick="board_clicked('${j}${i}')" class="${color}" ival="${i}" jval="${j}" id="${j}${i}" color="${color}"></td>`
+                    toggle_color(color)
+                }
+                toggle_color(color)
+                table_content += "</tr>"
+            }
+        }
+        table_content += "</tbody>"
+        table.innerHTML = table_content
+        loadpons()
+    }
+    const loadpons = () => {
+        for(const [position, pon] of Object.entries(pons_position)) {
+            if (pon) {
+                let pon_split = pon.split(',')
+                let element = document.getElementById(position)
+                element.innerHTML = `<img src="/static/images/pons/${pon_split[0]}_${pon_split[1]}.png" alt="">`
+                element.setAttribute('ponvalue', pon_split[1])
+                element.setAttribute('poncolor', pon_split[0])
+            }
+        }
+    }
+    window.onload = function() {
+        loadboard()
+    };
+    </script>
+{% endblock %}

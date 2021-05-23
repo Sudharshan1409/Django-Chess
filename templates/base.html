@@ -66,10 +66,10 @@
                 text-align: left;
               }
             }
-            {% block style %}
-
-            {% endblock %}
         </style>
+        {% block style %}
+
+        {% endblock %}
     </head>
     <body>
         <div class="topnav" id="myTopnav">
@@ -79,8 +79,8 @@
               <a href="">Update Profile</a>
               <a href="{% url 'logout' %}">Log Out</a>
           {% else %}
-              {% if request.path == '/users/login/' %}
-                  <a class="nav navbar-right" href=""><span class="glyphicon glyphicon-user">SignUp</span></a>
+              {% if request.path == '/user/login/' %}
+                  <a class="nav navbar-right" href="{% url 'signup' %}"><span class="glyphicon glyphicon-user">SignUp</span></a>
               {% else %}
                   <a class="nav navbar-right" href="{% url 'login' %}"><span class="glyphicon glyphicon-user">Login</span></a>
               {% endif %}
@@ -118,9 +118,9 @@
                 x.className = "topnav";
               }
             }
-            {% block script %}
-
-            {% endblock %}
         </script>
+        {% block script %}
+
+        {% endblock %}
     </body>
 </html>

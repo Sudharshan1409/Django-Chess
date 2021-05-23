@@ -1,5 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
     <h1>Welcome to game list page</h1>
-    <a href="{% url 'game:newgame' %}"><button>New Game</button></a>
+    <br>
+    <table>
+        {% for each_user in user_list %}
+            {% if user != each_user %}
+                <tr>
+                    <td>{{ each_user.username }}</td>
+                    <td><a href="{% url 'game:creategame' each_user.pk %}"><Button>Play</Button></a></td>
+                </tr>
+            {% endif %}
+        {% endfor %}
+    </table>
 {% endblock %}
