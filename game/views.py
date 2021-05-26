@@ -40,13 +40,7 @@ class CreateGame(View):
             }
         ]
         color_decided = random.choice(decider)
-
-        if color_decided['player_white'] == request.user:
-            toggle = False
-        else:
-            toggle = True
-            
-        new_game = GameModel.objects.create(player_white=color_decided['player_white'], player_black=color_decided['player_black'], pons_position=self.getPonsPositions(), toggle_board=toggle)
+        new_game = GameModel.objects.create(player_white=color_decided['player_white'], player_black=color_decided['player_black'], pons_position=self.getPonsPositions())
         print(new_game)
         return redirect('game:game', pk = new_game.pk)
 

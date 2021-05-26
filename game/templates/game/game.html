@@ -4,15 +4,13 @@
 {% block style %}
     <style>
         .chess-board { border-spacing: 0; border-collapse: collapse;  }
-        .chess-board th { padding: .5em; }
         .chess-board th + th { border-bottom: 1px solid #000; }
         .chess-board td:first-child { border-left: 1px solid #000; }
         .chess-board tr:first-child { border-top: 1px solid #000; }
         .chess-board td:last-child { border-right: 1px solid #000; }
-        .chess-board td:hover { background-color: rgb(66, 132, 161); }
         .chess-board tr:last-child td { border-bottom: 1px solid; }
         .chess-board th:empty { border: none; }
-        .chess-board td { width: 10vmin; height: 10vmin; text-align: center; font-size: 5vmax; line-height: 0; }
+        .chess-board td { width: 10vmin; height: 10vmin; text-align: center; line-height: 0; }
         .chess-board td img {
             max-width:100%;
             max-height:100%;
@@ -32,9 +30,73 @@
         .chess-board .selected { background: rgb(176, 152, 63); }
         .chess-board .danger_black { background: rgb(180,100,101); }
         .chess-board .danger_white { background: rgb(238,160,161); }
+        .chess-board .danger { background: rgb(255,0,0,0.8); }
+
+        {% if user.is_authenticated %}
+            .chess-board td:hover { background-color: rgb(66, 132, 161); }
+        {% endif %}
+
+        .online {
+            color: green;
+        }
+
+        .status_div {
+            width: 80vmin;
+            display: block;
+            height: 1vmin;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .status_div .connection_status {
+            float: left;
+            width: 40vmin;
+            font-size: 2vmin;
+        }
+
+        .status_div .turn {
+            float: right;
+            width: 40vmin;
+            font-size: 2vmin;
+        }
+
+        .offline {
+            color: red;
+        }
+
+        @media only screen and (orientation: portrait) {
+            .chess-board td { width: 12vmin; height: 12vmin; text-align: center; line-height: 0; }
+
+            .status_div {
+                width: 90vmin;
+                display: block;
+                height: 1vmin;
+                margin-left: auto;
+                margin-right: auto;
+            }
+    
+            .status_div .connection_status {
+                float: left;
+                width: 45vmin;
+                font-size: 3vmin;
+            }
+    
+            .status_div .turn {
+                float: right;
+                width: 45vmin;
+                font-size: 3vmin;
+            }
+        }
+
     </style>
 {% endblock %}
+
 {% block content %}
+    <div id="status_div" class="status_div">
+         <div id="connection_status" class="connection_status" align="left"></div>
+         <div id="turn" class="turn" align="right"></div>
+    </div>
+    <br>
     <table id="chess-board" class="chess-board" align="center">
         
     </table>
@@ -43,28 +105,79 @@
 {% endblock %}
 
 {% block script %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reconnecting-websocket/1.0.0/reconnecting-websocket.min.js" integrity="sha512-B4skI5FiLurS86aioJx9VfozI1wjqrn6aTdJH+YQUmCZum/ZibPBTX55k5d9XM6EsKePDInkLVrN7vPmJxc1qA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script>
     const rows = ['8', '7', '6', '5', '4', '3', '2', '1']
     const rows_reverse = ['1', '2', '3', '4', '5', '6', '7', '8']
     const columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
     const columns_reverse = ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
-    const pons_position = JSON.parse("{{ game_details.pons_position|convertJSON }}")
     const pon_details = JSON.parse("{{ game_details.pons_details|convertJSON }}")
-    const current_user_pk = "{{ user.pk }}"
-    const player_white_pk = "{{ game_details.player_white.pk }}"
-    const player_black_pk = "{{ game_details.player_black.pk }}"
+    const game_id = {{ game_details.pk }}
+    const player_details = {
+        'white': {},
+        'black': {},
+        'current': {},
+        'opponent': {},
+    }
+    player_details.white.pk = "{{ game_details.player_white.pk }}"
+    player_details.black.pk = "{{ game_details.player_black.pk }}"
+    player_details.white.uname = "{{ game_details.player_white }}"
+    player_details.black.uname = "{{ game_details.player_black }}"
+    player_details.current.uname = "{{ user }}"
+    player_details.current.pk = "{{ user.pk }}"
+
+    {% if user == game_details.player_white %}
+        player_details.opponent.uname = player_details.black.uname
+        player_details.opponent.pk = player_details.black.pk
+    {% else %}
+        player_details.opponent.uname = player_details.white.uname
+        player_details.opponent.pk = player_details.white.pk
+    {% endif %}
+
     
-    let toggle_board = {{ game_details.toggle_board|booleanConvert }}
+    let toggle_board;
     let turn = "{{ game_details.turn }}"
+    let king_positions = JSON.parse("{{ game_details.king_positions|convertJSON }}")
+    let moves = JSON.parse("{{ game_details.moves }}")
+    let moved_checks = JSON.parse("{{ game_details.moved_checks|convertJSON }}")
+    let pons_position = JSON.parse("{{ game_details.pons_position|convertJSON }}")
     let pon_clicked = null
     let color = 'light'
     let movable_positions = []
     let previous_clicked_pon = null
+    let check = false
+
+    var window_location = window.location
+    var wsprotocol = 'ws://'
+
+    if(window_location == 'https') {
+        wsprotocol = 'wss://'
+    }
+
+    if (player_details.white.pk == player_details.current.pk)
+        toggle_board = false
+    else
+        toggle_board = true
+            
+
+    var endpoint = wsprotocol + window_location.host + '/ws/game/' + game_id + '/'
+
+    const chatSocket = new ReconnectingWebSocket(endpoint);
 
     console.log("player white:", "{{ game_details.player_white }}")
     console.log("player black:", "{{ game_details.player_black }}")
     console.log("current user:", "{{ user }}")
     console.log("turn:", "{{ game_details.turn }}")
+    console.log("toggle:", toggle_board)
+    console.log('player details:', player_details)
+
+    const choose_turn = () => {
+        turn_element = document.getElementById('turn')
+        if(player_details.current.pk == player_details[turn].pk) 
+            turn_element.innerHTML = `Turn: <b class='online'>${ player_details[turn].uname }</b>`
+        else
+            turn_element.innerHTML = `Turn: <b class='offline'>${ player_details[turn].uname }</b>`
+    }
     
     const toggle_color = () => {
         if(color == 'light') {
@@ -82,6 +195,7 @@
         else {
             turn = 'white'
         }
+        choose_turn()
     }
 
     const toggle_board_func = () => {
@@ -359,7 +473,7 @@
         return moves
     }
 
-    const calculate_move = () => {
+    const calculate_move = (pon_clicked) => {
         let can_move = []
         let element = null
         if (pon_clicked.getAttribute('ponvalue') == 'soldier') {
@@ -378,7 +492,6 @@
                 if (right_diagonal && right_diagonal.getAttribute('poncolor') && right_diagonal.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
                     can_move.push(right_diagonal)
                 }
-                return can_move
             }
             else {
                 if (pon_clicked.getAttribute('ival') == 7) {
@@ -395,7 +508,6 @@
                 if (right_diagonal && right_diagonal.getAttribute('poncolor') && right_diagonal.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
                     can_move.push(right_diagonal)
                 }
-                return can_move
             }
         }
         else if (pon_clicked.getAttribute('ponvalue') == 'knight') {
@@ -449,7 +561,6 @@
                     can_move.push(element)
                 }
             }
-            return can_move
         }
         else if (pon_clicked.getAttribute('ponvalue') == 'queen') {
             can_move = can_move.concat(move_up(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
@@ -460,21 +571,18 @@
             can_move = can_move.concat(move_right_top(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
             can_move = can_move.concat(move_left_bottom(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
             can_move = can_move.concat(move_right_bottom(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            return can_move
         }
         else if (pon_clicked.getAttribute('ponvalue') == 'bishop') {
             can_move = can_move.concat(move_left_top(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
             can_move = can_move.concat(move_right_top(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
             can_move = can_move.concat(move_left_bottom(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
             can_move = can_move.concat(move_right_bottom(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            return can_move
         }
         else if (pon_clicked.getAttribute('ponvalue') == 'rook') {
             can_move = can_move.concat(move_up(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
             can_move = can_move.concat(move_down(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
             can_move = can_move.concat(move_left(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
             can_move = can_move.concat(move_right(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            return can_move
         }
         else if (pon_clicked.getAttribute('ponvalue') == 'king') {
             can_move = can_move.concat(move_up(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
@@ -485,12 +593,12 @@
             can_move = can_move.concat(move_right_top(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
             can_move = can_move.concat(move_left_bottom(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
             can_move = can_move.concat(move_right_bottom(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            return can_move
         }
+        return can_move
     }
 
     const board_clicked = (position) => {
-        if ((turn == 'white' && player_white_pk == current_user_pk) || (turn == 'black' && player_black_pk == current_user_pk)) {
+        if(player_details[turn].pk == player_details.current.pk) {
             let get_selected = document.getElementsByClassName('selected')
             for(let element of get_selected) {
                 element.className = element.getAttribute('color')
@@ -506,7 +614,7 @@
             }
             if(pon_clicked.getAttribute('poncolor') == turn) {
                 pon_clicked.className = "selected"
-                movable_positions = calculate_move()
+                movable_positions = calculate_move(pon_clicked)
                 for (const move of movable_positions) {
                     if(move.getAttribute('poncolor')) {
                         if(move.className == 'dark') {
@@ -525,30 +633,47 @@
             else {
                 if (previous_clicked_pon && previous_clicked_pon.getAttribute('poncolor')) {
                     let moved_position = document.getElementById(position)
+                    let poncolor = previous_clicked_pon.getAttribute('poncolor')
+                    let ponvalue = previous_clicked_pon.getAttribute('ponvalue')
                     if (movable_positions.includes(moved_position)) {
-                        let innerHTML = previous_clicked_pon.innerHTML
-                        let poncolor = previous_clicked_pon.getAttribute('poncolor')
-                        let ponvalue = previous_clicked_pon.getAttribute('ponvalue')
-                        previous_clicked_pon.removeAttribute('poncolor')
-                        previous_clicked_pon.removeAttribute('ponvalue')
-                        previous_clicked_pon.innerHTML = ''
-                        console.log(ponvalue)
-                        console.log(poncolor)
-                        console.log(moved_position.getAttribute('ival'))
+                        let move = {
+                            before: previous_clicked_pon.id,
+                            after: moved_position.id,
+                            before_ponvalue: ponvalue,
+                            after_ponvalue: ponvalue
+                        }
                         if(ponvalue == 'soldier') {
-                            if(moved_position.getAttribute('ival') == '1' || moved_position.getAttribute('ival' == '8')) {
-                                moved_position.setAttribute('poncolor', poncolor)
-                                moved_position.setAttribute('ponvalue', 'queen')
-                                moved_position.innerHTML = `<img src="/static/images/pons/${poncolor}_${'queen'}.png" alt="">`
-                                toggle_turn()
-                                return
+                            if(moved_position.getAttribute('ival') == '1' || moved_position.getAttribute('ival') == '8') {
+                                previous_clicked_pon.setAttribute('ponvalue', 'queen')
+                                move.after_ponvalue = 'queen'
                             }
                         }
-                        moved_position.setAttribute('poncolor', poncolor)
-                        moved_position.setAttribute('ponvalue', ponvalue)
-                        moved_position.innerHTML = innerHTML
-                        toggle_turn()
-                        
+                        else if(ponvalue == 'king') {
+                            king_positions[poncolor] = moved_position.id
+                            moved_checks[poncolor][ponvalue] = true
+                        }
+                        else if(ponvalue == 'rook') {
+                            if (!moved_checks[poncolor][ponvalue][previous_clicked_pon.getAttribute('jval')])
+                                moved_checks[poncolor][ponvalue][previous_clicked_pon.getAttribute('jval')] = true
+                        }
+                        moves.push(move)
+                        pons_position[moved_position.id] = pons_position[previous_clicked_pon.id]
+                        pons_position[previous_clicked_pon.id] = ''
+                        let message = {
+                            source: previous_clicked_pon.id,
+                            destination: moved_position.id,
+                            poncolor: poncolor,
+                            ponvalue: ponvalue,
+                            king_positions: king_positions,
+                            moved_checks: moved_checks,
+                            pons_position: pons_position,
+                            moves: moves,
+                        }
+                        chatSocket.send(JSON.stringify({
+                            'message': JSON.stringify(message),
+                            'type': 'move',
+                            'user': player_details.current.pk
+                        }));
                         //condition here for soldier reaching top
                     }
                 }
@@ -585,6 +710,7 @@
         table.innerHTML = table_content
         loadpons()
     }
+    
     const loadpons = () => {
         for(const [position, pon] of Object.entries(pons_position)) {
             if (pon) {
@@ -596,8 +722,147 @@
             }
         }
     }
+
+    const get_toggle_turn = () => {
+        if(turn == 'white') {
+            return 'black'
+        }
+        return 'white'
+    }
+    
+    const check_for_check_mate = (opp_turn) => {
+        let element;
+        let pon_split;
+        let result;
+        movable_locations = []
+        for(const [position, pon] of Object.entries(pons_position)) {
+            if (pon.includes(opp_turn)) {
+                element = document.getElementById(position)
+                movable_locations = calculate_move(element)
+                console.log(movable_locations)
+                for(location of movable_locations) {
+                    let pons_position_copy = JSON.parse(JSON.stringify(pons_position));
+                    pons_position_copy[location.id] = pons_position_copy[position]
+                    pons_position_copy[position] = ''
+                    pon_split = pon.split(',')
+                    console.log(location, movable_locations)
+                    if (!location.getAttribute('poncolor')) {
+                        element.removeAttribute('poncolor')
+                        element.removeAttribute('ponvalue')
+                        element.innerHTML = ''
+                        location.setAttribute('poncolor', pon_split[0])
+                        location.setAttribute('ponvalue', pon_split[1])
+                        location.innerHTML = `<img src="/static/images/pons/${pon_split[0]}_${pon_split[1]}.png" alt="">`
+
+                        result = check_for_check(opp_turn)
+
+                        location.removeAttribute('poncolor')
+                        location.removeAttribute('ponvalue')
+                        location.innerHTML = ''
+                        element.setAttribute('poncolor', pon_split[0])
+                        element.setAttribute('ponvalue', pon_split[1])
+                        element.innerHTML = `<img src="/static/images/pons/${pon_split[0]}_${pon_split[1]}.png" alt="">`
+                        if(!result)
+                            return false
+                    }
+                    else {
+                        element.removeAttribute('poncolor')
+                        element.removeAttribute('ponvalue')
+                        element.innerHTML = ''
+                        let location_poncolor = location.getAttribute('poncolor')
+                        let location_ponvalue = location.getAttribute('ponvalue')
+                        location.setAttribute('poncolor', pon_split[0])
+                        location.setAttribute('ponvalue', pon_split[1])
+                        location.innerHTML = `<img src="/static/images/pons/${pon_split[0]}_${pon_split[1]}.png" alt="">`
+
+                        result = check_for_check(opp_turn)
+
+                        element.setAttribute('poncolor', location_poncolor)
+                        element.setAttribute('ponvalue', location_ponvalue)
+                        location.innerHTML = `<img src="/static/images/pons/${location_poncolor}_${location_ponvalue}.png" alt="">`
+                        element.setAttribute('poncolor', pon_split[0])
+                        element.setAttribute('ponvalue', pon_split[1])
+                        element.innerHTML = `<img src="/static/images/pons/${pon_split[0]}_${pon_split[1]}.png" alt="">`
+                        if(!result)
+                            return false
+                    }
+                }
+            }
+        }
+        return true
+    }
+    
+    const check_for_check = (opp_turn) => {
+        let element;
+        danger_locations = []
+        for(const [position, pon] of Object.entries(pons_position)) {
+            if (pon.includes(turn)) {
+                element = document.getElementById(position)
+                danger_locations = danger_locations.concat(calculate_move(element))
+            }
+        }
+        element = document.getElementById(king_positions[opp_turn])
+        console.log('element:', element.id)
+        for(let pos of danger_locations) {
+            console.log('locations:', pos.id)
+        }
+        if (danger_locations.includes(element)) {
+            check = true
+            element.className = 'danger'
+            return true
+        }
+        return false
+    }
+    
+    const new_move = (data) => {
+        let response = JSON.parse(data.message)
+        let source_position = document.getElementById(response.source)
+        let destination_position = document.getElementById(response.destination)
+        source_position.removeAttribute('poncolor')
+        source_position.removeAttribute('ponvalue')
+        source_position.innerHTML = ''
+        moves = response.moves
+        destination_position.setAttribute('poncolor', response.poncolor)
+        destination_position.setAttribute('ponvalue', moves[moves.length-1].after_ponvalue)
+        destination_position.innerHTML = `<img src="/static/images/pons/${response.poncolor}_${moves[moves.length-1].after_ponvalue}.png" alt="">`
+        king_positions = response.king_positions
+        moved_checks = response.moved_checks
+        pons_position = response.pons_position
+        opp_turn = get_toggle_turn()
+        if(check_for_check(opp_turn)) {
+            if(check_for_check_mate(opp_turn)) {
+                console.log('check mate')
+            }
+        }
+        toggle_turn()
+    }
+    
+    chatSocket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type == 'move') {
+            new_move(data)
+        }
+    };
+
+    chatSocket.onclose = (event) => {
+        console.error('websocket closed unexpectedly');
+        connection_status = document.getElementById('connection_status')
+        connection_status.innerHTML = "Connection Status: <b class='offline'>OFFLINE</b>"
+    };
+
+    chatSocket.onopen = (event) => {
+        connection_status = document.getElementById('connection_status')
+        connection_status.innerHTML = "Connection Status: <b class='online'>ONLINE</b>"
+    };
+
+    chatSocket.onerror = (event) => {
+        
+    }
+    
     window.onload = function() {
+        choose_turn()
         loadboard()
     };
+        
     </script>
 {% endblock %}

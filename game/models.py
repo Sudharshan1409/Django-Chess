@@ -25,6 +25,12 @@ def generate_pons_details():
     }
     return pons_details
 
+def generate_king_positions():
+    return {
+        'black': 'e8',
+        'white': 'e1'
+    }
+
 def generate_pon_status():
     pon_status = {
         'black_king_moved': False,
@@ -38,16 +44,39 @@ def generate_pon_status():
     }
     return pon_status
 
+def generate_moved_checks():
+    return {
+        'black': {
+            'king': False,
+            'rook': {
+                'a': False,
+                'h': False,
+            },
+            'castling': False,
+        },
+        'white': {
+            'king': False,
+            'rook': {
+                'a': False,
+                'h': False,
+            },
+            'castling': False,
+        }
+    }
+
+def generate_moves():
+    return []
+
 class Game(models.Model):
     player_white = models.ForeignKey(User, related_name='games_white', on_delete=models.SET_NULL, null=True)
     player_black = models.ForeignKey(User, related_name='games_black', on_delete=models.SET_NULL, null=True)
     winner = models.ForeignKey(User, related_name='wins', on_delete=models.SET_NULL, null=True)
     pons_position = models.JSONField(blank=True, null=True)
     pons_details = models.JSONField(default=generate_pons_details)
-    toggle_board = models.BooleanField(default=False)
-    # toggle_details = models.JSONField(default=generate_toggle_details)
-    pon_status = models.JSONField(default=generate_pon_status)
     turn = models.CharField(max_length=5, default='white')
+    king_positions = models.JSONField(default=generate_king_positions)
+    moved_checks = models.JSONField(default=generate_moved_checks)
+    moves = models.JSONField(default=generate_moves)
     
     def get_absolute_url(self):
         return reverse('game:newgame',kwargs = {'pk':self.pk})

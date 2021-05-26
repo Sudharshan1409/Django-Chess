@@ -26,7 +26,7 @@ SECRET_KEY = 't+mx04#9@gt&j2tkq^#3y)n#2np3fi195%s5c_a4_u16qul2e%'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.29.17', '127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -57,6 +57,14 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'chess.urls'
 
 ASGI_APPLICATION = "chess.asgi.application"
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
 
 TEMPLATES = [
     {
