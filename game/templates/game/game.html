@@ -162,7 +162,7 @@
 
     var endpoint = wsprotocol + window_location.host + '/ws/game/' + game_id + '/'
 
-    const chatSocket = new ReconnectingWebSocket(endpoint);
+    const gameSocket = new ReconnectingWebSocket(endpoint);
 
     console.log("player white:", "{{ game_details.player_white }}")
     console.log("player black:", "{{ game_details.player_black }}")
@@ -203,19 +203,20 @@
         loadboard()
     }
 
-    const move_up = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color) => {
+    const move_up = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color, pons_position) => {
         let moves = []
         if(parseInt(ival) == 8) {
             return []
         }
         for(let i=parseInt(ival)+1; i<parseInt(ival)+max_place+1; i++) {
-            let element = document.getElementById(`${jval}${i}`)
-            if (element.innerHTML){
+            let element = `${jval}${i}`
+            let element_poncolor = pons_position[element][0]
+            if (element_poncolor){
                 if (ignore_opponent_pon) {
                     break;
                 }
                 else {
-                    if (element.getAttribute('poncolor') == pon_color) {
+                    if (element_poncolor == pon_color) {
                         break;
                     }
                     else {
@@ -234,7 +235,7 @@
         return moves
     }
 
-    move_left_top = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color) => {
+    const move_left_top = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color, pons_position) => {
         let moves = []
         iindex = rows.indexOf(ival)
         jindex = columns.indexOf(jval)
@@ -245,13 +246,14 @@
             return []
         }
         for(let i=iindex-1, j=jindex-1; i>iindex-max_place-1, j>jindex-max_place-1; i--,j--) {
-            let element = document.getElementById(`${columns[j]}${rows[i]}`)
-            if (element.innerHTML){
+            let element = `${columns[j]}${rows[i]}`
+            let element_poncolor = pons_position[element][0]
+            if (element_poncolor){
                 if (ignore_opponent_pon) {
                     break;
                 }
                 else {
-                    if (element.getAttribute('poncolor') == pon_color) {
+                    if (element_poncolor == pon_color) {
                         break;
                     }
                     else {
@@ -270,7 +272,7 @@
         return moves
     }
 
-    move_left_bottom = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color) => {
+    const move_left_bottom = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color, pons_position) => {
         let moves = []
         iindex = rows.indexOf(ival)
         jindex = columns.indexOf(jval)
@@ -281,13 +283,14 @@
             return []
         }
         for(let i=iindex+1, j=jindex-1; i<iindex+max_place+1, j>jindex-max_place-1; i++,j--) {
-            let element = document.getElementById(`${columns[j]}${rows[i]}`)
-            if (element.innerHTML){
+            let element = `${columns[j]}${rows[i]}`
+            let element_poncolor = pons_position[element][0]
+            if (element_poncolor){
                 if (ignore_opponent_pon) {
                     break;
                 }
                 else {
-                    if (element.getAttribute('poncolor') == pon_color) {
+                    if (element_poncolor == pon_color) {
                         break;
                     }
                     else {
@@ -306,20 +309,21 @@
         return moves
     }
 
-    move_left = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color) => {
+    const move_left = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color, pons_position) => {
         let moves = []
         jindex = columns.indexOf(jval)
         if(jindex==0) {
             return []
         }
         for(let j=jindex-1; j>jindex-max_place-1; j--) {
-            let element = document.getElementById(`${columns[j]}${ival}`)
-            if (element.innerHTML){
+            let element = `${columns[j]}${ival}`
+            let element_poncolor = pons_position[element][0]
+            if (element_poncolor){
                 if (ignore_opponent_pon) {
                     break;
                 }
                 else {
-                    if (element.getAttribute('poncolor') == pon_color) {
+                    if (element_poncolor == pon_color) {
                         break;
                     }
                     else {
@@ -338,7 +342,7 @@
         return moves
     }
 
-    move_right_top = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color) => {
+    const move_right_top = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color, pons_position) => {
         let moves = []
         iindex = rows.indexOf(ival)
         jindex = columns.indexOf(jval)
@@ -349,13 +353,14 @@
             return []
         }
         for(let i=iindex-1, j=jindex+1; i>iindex-max_place-1, j<jindex+max_place+1; i--,j++) {
-            let element = document.getElementById(`${columns[j]}${rows[i]}`)
-            if (element.innerHTML){
+            let element = `${columns[j]}${rows[i]}`
+            let element_poncolor = pons_position[element][0]
+            if (element_poncolor){
                 if (ignore_opponent_pon) {
                     break;
                 }
                 else {
-                    if (element.getAttribute('poncolor') == pon_color) {
+                    if (element_poncolor == pon_color) {
                         break;
                     }
                     else {
@@ -374,20 +379,21 @@
         return moves
     }
     
-    move_right = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color) => {
+    const move_right = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color, pons_position) => {
         let moves = []
         jindex = columns.indexOf(jval)
         if(jindex==7) {
             return []
         }
         for(let j=jindex+1; j<jindex+max_place+1; j++) {
-            let element = document.getElementById(`${columns[j]}${ival}`)
-            if (element.innerHTML){
+            let element = `${columns[j]}${ival}`
+            let element_poncolor = pons_position[element][0]
+            if (element_poncolor){
                 if (ignore_opponent_pon) {
                     break;
                 }
                 else {
-                    if (element.getAttribute('poncolor') == pon_color) {
+                    if (element_poncolor == pon_color) {
                         break;
                     }
                     else {
@@ -406,7 +412,7 @@
         return moves
     }
 
-    move_right_bottom = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color) => {
+    const move_right_bottom = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color, pons_position) => {
         let moves = []
         iindex = rows.indexOf(ival)
         jindex = columns.indexOf(jval)
@@ -417,13 +423,14 @@
             return []
         }
         for(let i=iindex+1, j=jindex+1; i<iindex+max_place+1, j<jindex+max_place+1; i++,j++) {
-            let element = document.getElementById(`${columns[j]}${rows[i]}`)
-            if (element.innerHTML){
+            let element = `${columns[j]}${rows[i]}`
+            let element_poncolor = pons_position[element][0]
+            if (element_poncolor){
                 if (ignore_opponent_pon) {
                     break;
                 }
                 else {
-                    if (element.getAttribute('poncolor') == pon_color) {
+                    if (element_poncolor == pon_color) {
                         break;
                     }
                     else {
@@ -442,19 +449,20 @@
         return moves
     }
 
-    const move_down = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color) => {
+    const move_down = (max_place=8, ignore_opponent_pon=false, ival, jval, pon_color, pons_position) => {
         let moves = []
         if(parseInt(ival) == 1) {
             return []
         }
         for(let i=parseInt(ival)-1; i>parseInt(ival)-max_place-1; i--) {
-            let element = document.getElementById(`${jval}${i}`)
-            if (element.innerHTML){
+            let element = `${jval}${i}`
+            let element_poncolor = pons_position[element][0]
+            if (element_poncolor){
                 if (ignore_opponent_pon) {
                     break;
                 }
                 else {
-                    if (element.getAttribute('poncolor') == pon_color) {
+                    if (element_poncolor == pon_color) {
                         break;
                     }
                     else {
@@ -473,129 +481,170 @@
         return moves
     }
 
-    const calculate_move = (pon_clicked) => {
+    const calculate_move = (pon_clicked, pons_position) => {
         let can_move = []
         let element = null
-        if (pon_clicked.getAttribute('ponvalue') == 'soldier') {
-            if (pon_clicked.getAttribute('poncolor') == 'white') {
-                if (pon_clicked.getAttribute('ival') == 2) {
-                    can_move = move_up(2, true, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor'))
+        let element_poncolor = null
+        let ponvalue = pons_position[pon_clicked][1]
+        let poncolor = pons_position[pon_clicked][0]
+        let ld_ponvalue
+        let ld_poncolor
+
+        if (ponvalue == 'soldier') {
+            if (poncolor == 'white') {
+                if (pon_clicked[1] == 2) {
+                    can_move = move_up(2, true, pon_clicked[1], pon_clicked[0], poncolor, pons_position)
                 }
                 else {
-                    can_move = move_up(1, true, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor'))
+                    can_move = move_up(1, true, pon_clicked[1], pon_clicked[0], poncolor, pons_position)
                 }
-                left_diagonal = move_left_top(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor'))[0]
-                right_diagonal = move_right_top(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor'))[0]
-                if (left_diagonal && left_diagonal.getAttribute('poncolor') && left_diagonal.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                let left_diagonal = move_left_top(1, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position)[0]
+                
+                if(left_diagonal) {
+                    ld_ponvalue = pons_position[left_diagonal][1]
+                    ld_poncolor = pons_position[left_diagonal][0]
+                }
+
+                let right_diagonal = move_right_top(1, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position)[0]
+                
+                if (right_diagonal) {
+                    rd_ponvalue = pons_position[right_diagonal][1]
+                    rd_poncolor = pons_position[right_diagonal][0]
+                }
+
+                if (left_diagonal && ld_poncolor && ld_poncolor != poncolor) {
                     can_move.push(left_diagonal)
                 }
-                if (right_diagonal && right_diagonal.getAttribute('poncolor') && right_diagonal.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                if (right_diagonal && rd_poncolor && rd_poncolor != poncolor) {
                     can_move.push(right_diagonal)
                 }
             }
             else {
-                if (pon_clicked.getAttribute('ival') == 7) {
-                    can_move = move_down(2, true, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor'))
+                if (pon_clicked[1] == 7) {
+                    can_move = move_down(2, true, pon_clicked[1], pon_clicked[0], poncolor, pons_position)
                 }
                 else {
-                    can_move = move_down(1, true, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor'))
+                    can_move = move_down(1, true, pon_clicked[1], pon_clicked[0], poncolor, pons_position)
                 }
-                left_diagonal = move_left_bottom(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor'))[0]
-                right_diagonal = move_right_bottom(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor'))[0]
-                if (left_diagonal && left_diagonal.getAttribute('poncolor') && left_diagonal.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                let left_diagonal = move_left_bottom(1, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position)[0]
+                console.log('left diagonal', left_diagonal)
+                if (left_diagonal) {
+                    ld_ponvalue = pons_position[left_diagonal][1]
+                    ld_poncolor = pons_position[left_diagonal][0]
+                }
+
+                let right_diagonal = move_right_bottom(1, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position)[0]
+                console.log('right diagonal', right_diagonal)
+                if (right_diagonal) {
+                    rd_ponvalue = pons_position[right_diagonal][1]
+                    rd_poncolor = pons_position[right_diagonal][0]
+                }
+
+                if (left_diagonal && ld_poncolor && ld_poncolor != poncolor) {
+                    console.log('left if ran')
                     can_move.push(left_diagonal)
                 }
-                if (right_diagonal && right_diagonal.getAttribute('poncolor') && right_diagonal.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                if (right_diagonal && rd_poncolor && rd_poncolor != poncolor) {
+                    console.log('right if ran')
                     can_move.push(right_diagonal)
                 }
             }
         }
-        else if (pon_clicked.getAttribute('ponvalue') == 'knight') {
-            let iindex = rows.indexOf(pon_clicked.getAttribute('ival'))
-            let jindex = columns.indexOf(pon_clicked.getAttribute('jval'))
+        else if (ponvalue == 'knight') {
+            let iindex = rows.indexOf(pon_clicked[1])
+            let jindex = columns.indexOf(pon_clicked[0])
             if (iindex+2 < 8 && jindex+1 < 8) {
-                element = document.getElementById(`${columns[jindex+1]}${rows[iindex+2]}`)
-                if(!element.getAttribute('poncolor') || element.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                element = `${columns[jindex+1]}${rows[iindex+2]}`
+                element_poncolor = pons_position[element][0]
+                if(!element_poncolor || element_poncolor != poncolor) {
                     can_move.push(element)
                 }
             }
             if (iindex+2 < 8 && jindex-1 > -1) {
-                element = document.getElementById(`${columns[jindex-1]}${rows[iindex+2]}`)
-                if(!element.getAttribute('poncolor') || element.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                element = `${columns[jindex-1]}${rows[iindex+2]}`
+                element_poncolor = pons_position[element][0]
+                if(!element_poncolor || element_poncolor != poncolor) {
                     can_move.push(element)
                 }
             }
             if (iindex-2 > -1 && jindex+1 < 8) {
-                element = document.getElementById(`${columns[jindex+1]}${rows[iindex-2]}`)
-                if(!element.getAttribute('poncolor') || element.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                element = `${columns[jindex+1]}${rows[iindex-2]}`
+                element_poncolor = pons_position[element][0]
+                if(!element_poncolor || element_poncolor != poncolor) {
                     can_move.push(element)
                 }
             }
             if (iindex-2 > -1 && jindex-1 > -1) {
-                element = document.getElementById(`${columns[jindex-1]}${rows[iindex-2]}`)
-                if(!element.getAttribute('poncolor') || element.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                element = `${columns[jindex-1]}${rows[iindex-2]}`
+                element_poncolor = pons_position[element][0]
+                if(!element_poncolor || element_poncolor != poncolor) {
                     can_move.push(element)
                 }
             }
             if (iindex-1 > -1 && jindex-2 > -1) {
-                element = document.getElementById(`${columns[jindex-2]}${rows[iindex-1]}`)
-                if(!element.getAttribute('poncolor') || element.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                element = `${columns[jindex-2]}${rows[iindex-1]}`
+                element_poncolor = pons_position[element][0]
+                if(!element_poncolor || element_poncolor != poncolor) {
                     can_move.push(element)
                 }
             }
             if (iindex+1 < 8 && jindex-2 > -1) {
-                element = document.getElementById(`${columns[jindex-2]}${rows[iindex+1]}`)
-                if(!element.getAttribute('poncolor') || element.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                element = `${columns[jindex-2]}${rows[iindex+1]}`
+                element_poncolor = pons_position[element][0]
+                if(!element_poncolor || element_poncolor != poncolor) {
                     can_move.push(element)
                 }
             }
             if (iindex-1 > -1 && jindex+2 < 8) {
-                element = document.getElementById(`${columns[jindex+2]}${rows[iindex-1]}`)
-                if(!element.getAttribute('poncolor') || element.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                element = `${columns[jindex+2]}${rows[iindex-1]}`
+                element_poncolor = pons_position[element][0]
+                if(!element_poncolor || element_poncolor != poncolor) {
                     can_move.push(element)
                 }
             }
             if (iindex+1 < 8 && jindex+2 < 8) {
-                element = document.getElementById(`${columns[jindex+2]}${rows[iindex+1]}`)
-                if(!element.getAttribute('poncolor') || element.getAttribute('poncolor') != pon_clicked.getAttribute('poncolor')) {
+                element = `${columns[jindex+2]}${rows[iindex+1]}`
+                element_poncolor = pons_position[element][0]
+                if(!element_poncolor || element_poncolor != poncolor) {
                     can_move.push(element)
                 }
             }
         }
-        else if (pon_clicked.getAttribute('ponvalue') == 'queen') {
-            can_move = can_move.concat(move_up(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            can_move = can_move.concat(move_down(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            can_move = can_move.concat(move_left(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            can_move = can_move.concat(move_right(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            can_move = can_move.concat(move_left_top(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            can_move = can_move.concat(move_right_top(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            can_move = can_move.concat(move_left_bottom(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            can_move = can_move.concat(move_right_bottom(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+        else if (ponvalue == 'queen') {
+            can_move = can_move.concat(move_up(8, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
+            can_move = can_move.concat(move_down(8, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
+            can_move = can_move.concat(move_left(8, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
+            can_move = can_move.concat(move_right(8, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
+            can_move = can_move.concat(move_left_top(8, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
+            can_move = can_move.concat(move_right_top(8, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
+            can_move = can_move.concat(move_left_bottom(8, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
+            can_move = can_move.concat(move_right_bottom(8, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
         }
-        else if (pon_clicked.getAttribute('ponvalue') == 'bishop') {
-            can_move = can_move.concat(move_left_top(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            can_move = can_move.concat(move_right_top(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            can_move = can_move.concat(move_left_bottom(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            can_move = can_move.concat(move_right_bottom(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+        else if (ponvalue == 'bishop') {
+            can_move = can_move.concat(move_left_top(8, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
+            can_move = can_move.concat(move_right_top(8, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
+            can_move = can_move.concat(move_left_bottom(8, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
+            can_move = can_move.concat(move_right_bottom(8, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
         }
-        else if (pon_clicked.getAttribute('ponvalue') == 'rook') {
-            can_move = can_move.concat(move_up(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            can_move = can_move.concat(move_down(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            can_move = can_move.concat(move_left(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            can_move = can_move.concat(move_right(8, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+        else if (ponvalue == 'rook') {
+            can_move = can_move.concat(move_up(8, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
+            can_move = can_move.concat(move_down(8, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
+            can_move = can_move.concat(move_left(8, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
+            can_move = can_move.concat(move_right(8, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
         }
-        else if (pon_clicked.getAttribute('ponvalue') == 'king') {
-            can_move = can_move.concat(move_up(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            can_move = can_move.concat(move_down(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            can_move = can_move.concat(move_left(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            can_move = can_move.concat(move_right(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            can_move = can_move.concat(move_left_top(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            can_move = can_move.concat(move_right_top(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            can_move = can_move.concat(move_left_bottom(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
-            can_move = can_move.concat(move_right_bottom(1, false, pon_clicked.getAttribute('ival'), pon_clicked.getAttribute('jval'), pon_clicked.getAttribute('poncolor')))
+        else if (ponvalue == 'king') {
+            can_move = can_move.concat(move_up(1, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
+            can_move = can_move.concat(move_down(1, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
+            can_move = can_move.concat(move_left(1, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
+            can_move = can_move.concat(move_right(1, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
+            can_move = can_move.concat(move_left_top(1, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
+            can_move = can_move.concat(move_right_top(1, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
+            can_move = can_move.concat(move_left_bottom(1, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
+            can_move = can_move.concat(move_right_bottom(1, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position))
         }
         return can_move
     }
+        console.log("🚀 ~ file: game.html ~ line 647 ~ ld_poncolor", ld_poncolor)
 
     const board_clicked = (position) => {
         if(player_details[turn].pk == player_details.current.pk) {
@@ -603,65 +652,87 @@
             for(let element of get_selected) {
                 element.className = element.getAttribute('color')
             }
-            pon_clicked = document.getElementById(position)
+            pon_clicked = position
+            let pon_clicked_element = document.getElementById(position)
             for(const pos of movable_positions) {
-                if(pos.getAttribute('poncolor')) {
-                    pos.className = pos.getAttribute('color')
+                let pos_element = document.getElementById(pos)
+                if(pons_position[pos][0]) {
+                    pos_element.className = pos_element.getAttribute('color')
                 }
                 else {
-                    pos.innerHTML = ''
+                    pos_element.innerHTML = ''
                 }
             }
-            if(pon_clicked.getAttribute('poncolor') == turn) {
-                pon_clicked.className = "selected"
-                movable_positions = calculate_move(pon_clicked)
+            if(pon_clicked_element.getAttribute('poncolor') == turn) {
+                pon_clicked_element.className = "selected"
+                movable_positions = calculate_move(pon_clicked, pons_position)
+                console.log('moves', movable_positions)
+                let movable_positions_copy = [...movable_positions]
+                let opp_turn = get_toggle_turn()
+                for(let move of movable_positions_copy) {
+                    let pons_position_copy = JSON.parse(JSON.stringify(pons_position))
+                    king_positions_copy = JSON.parse(JSON.stringify(king_positions))
+                    if (pons_position[pon_clicked][1] == 'king') {
+                        king_positions_copy[turn] = move
+                    }
+                    console.log('move', move)
+                    pons_position_copy[move] = pons_position_copy[pon_clicked]
+                    pons_position_copy[pon_clicked] = ['', '']
+                    let check_result = check_for_check(opp_turn, turn, pons_position_copy, king_positions_copy)
+                    console.log('check result', check_result)
+                    if (check_result.check) {
+                        movable_positions.splice(movable_positions.indexOf(move), 1)
+                    }
+                }
                 for (const move of movable_positions) {
-                    if(move.getAttribute('poncolor')) {
-                        if(move.className == 'dark') {
-                            move.className = 'danger_black'
+                    let move_element = document.getElementById(move)
+                    if(pons_position[move][0]) {
+                        if(move_element.className == 'dark') {
+                            move_element.className = 'danger_black'
                         }
                         else {
-                            move.className = 'danger_white'
+                            move_element.className = 'danger_white'
                         }
                     }
                     else {
-                        move.innerHTML = '<span></span>'
+                        move_element.innerHTML = '<span></span>'
                     }
                 }
                 previous_clicked_pon = pon_clicked
+                previous_clicked_pon_element = pon_clicked_element
             }
             else {
-                if (previous_clicked_pon && previous_clicked_pon.getAttribute('poncolor')) {
-                    let moved_position = document.getElementById(position)
-                    let poncolor = previous_clicked_pon.getAttribute('poncolor')
-                    let ponvalue = previous_clicked_pon.getAttribute('ponvalue')
+                if (previous_clicked_pon_element && previous_clicked_pon_element.getAttribute('poncolor')) {
+                    let moved_position = position
+                    let poncolor = previous_clicked_pon_element.getAttribute('poncolor')
+                    let ponvalue = previous_clicked_pon_element.getAttribute('ponvalue')
                     if (movable_positions.includes(moved_position)) {
                         let move = {
-                            before: previous_clicked_pon.id,
+                            before: previous_clicked_pon,
                             after: moved_position.id,
                             before_ponvalue: ponvalue,
                             after_ponvalue: ponvalue
                         }
+                        pons_position[moved_position] = pons_position[previous_clicked_pon]
+                        pons_position[previous_clicked_pon] = ['', '']
                         if(ponvalue == 'soldier') {
-                            if(moved_position.getAttribute('ival') == '1' || moved_position.getAttribute('ival') == '8') {
-                                previous_clicked_pon.setAttribute('ponvalue', 'queen')
+                            if(moved_position[1] == '1' || moved_position[1] == '8') {
+                                pons_position[moved_position] = poncolor + ',' + 'queen'
                                 move.after_ponvalue = 'queen'
                             }
                         }
                         else if(ponvalue == 'king') {
-                            king_positions[poncolor] = moved_position.id
+                            king_positions[poncolor] = moved_position
                             moved_checks[poncolor][ponvalue] = true
                         }
                         else if(ponvalue == 'rook') {
-                            if (!moved_checks[poncolor][ponvalue][previous_clicked_pon.getAttribute('jval')])
-                                moved_checks[poncolor][ponvalue][previous_clicked_pon.getAttribute('jval')] = true
+                            if (!moved_checks[poncolor][ponvalue][previous_clicked_pon[0]])
+                                moved_checks[poncolor][ponvalue][previous_clicked_pon[0]] = true
                         }
                         moves.push(move)
-                        pons_position[moved_position.id] = pons_position[previous_clicked_pon.id]
-                        pons_position[previous_clicked_pon.id] = ''
                         let message = {
-                            source: previous_clicked_pon.id,
-                            destination: moved_position.id,
+                            source: previous_clicked_pon,
+                            destination: moved_position,
                             poncolor: poncolor,
                             ponvalue: ponvalue,
                             king_positions: king_positions,
@@ -669,7 +740,7 @@
                             pons_position: pons_position,
                             moves: moves,
                         }
-                        chatSocket.send(JSON.stringify({
+                        gameSocket.send(JSON.stringify({
                             'message': JSON.stringify(message),
                             'type': 'move',
                             'user': player_details.current.pk
@@ -713,12 +784,11 @@
     
     const loadpons = () => {
         for(const [position, pon] of Object.entries(pons_position)) {
-            if (pon) {
-                let pon_split = pon.split(',')
+            if (pon[0]) {
                 let element = document.getElementById(position)
-                element.innerHTML = `<img src="/static/images/pons/${pon_split[0]}_${pon_split[1]}.png" alt="">`
-                element.setAttribute('ponvalue', pon_split[1])
-                element.setAttribute('poncolor', pon_split[0])
+                element.innerHTML = `<img src="/static/images/pons/${pon[0]}_${pon[1]}.png" alt="">`
+                element.setAttribute('ponvalue', pon[1])
+                element.setAttribute('poncolor', pon[0])
             }
         }
     }
@@ -730,88 +800,59 @@
         return 'white'
     }
     
-    const check_for_check_mate = (opp_turn) => {
+    const array_count = (array, element) => {
+        let count = 0
+        for(const ele of array) {
+            if (ele == element) {
+                count++
+            }
+        }
+        return count
+    }
+    
+    const check_for_check = (turn, opp_turn, pons_position, king_positions) => {
         let element;
-        let pon_split;
-        let result;
-        movable_locations = []
+        let danger_locations = []
+        let location_to_pon = {}
+        console.log(pons_position, turn, opp_turn, king_positions)
+        let king_element = document.getElementById(king_positions[opp_turn])
         for(const [position, pon] of Object.entries(pons_position)) {
-            if (pon.includes(opp_turn)) {
-                element = document.getElementById(position)
-                movable_locations = calculate_move(element)
-                console.log(movable_locations)
-                for(location of movable_locations) {
-                    let pons_position_copy = JSON.parse(JSON.stringify(pons_position));
-                    pons_position_copy[location.id] = pons_position_copy[position]
-                    pons_position_copy[position] = ''
-                    pon_split = pon.split(',')
-                    console.log(location, movable_locations)
-                    if (!location.getAttribute('poncolor')) {
-                        element.removeAttribute('poncolor')
-                        element.removeAttribute('ponvalue')
-                        element.innerHTML = ''
-                        location.setAttribute('poncolor', pon_split[0])
-                        location.setAttribute('ponvalue', pon_split[1])
-                        location.innerHTML = `<img src="/static/images/pons/${pon_split[0]}_${pon_split[1]}.png" alt="">`
-
-                        result = check_for_check(opp_turn)
-
-                        location.removeAttribute('poncolor')
-                        location.removeAttribute('ponvalue')
-                        location.innerHTML = ''
-                        element.setAttribute('poncolor', pon_split[0])
-                        element.setAttribute('ponvalue', pon_split[1])
-                        element.innerHTML = `<img src="/static/images/pons/${pon_split[0]}_${pon_split[1]}.png" alt="">`
-                        if(!result)
-                            return false
-                    }
-                    else {
-                        element.removeAttribute('poncolor')
-                        element.removeAttribute('ponvalue')
-                        element.innerHTML = ''
-                        let location_poncolor = location.getAttribute('poncolor')
-                        let location_ponvalue = location.getAttribute('ponvalue')
-                        location.setAttribute('poncolor', pon_split[0])
-                        location.setAttribute('ponvalue', pon_split[1])
-                        location.innerHTML = `<img src="/static/images/pons/${pon_split[0]}_${pon_split[1]}.png" alt="">`
-
-                        result = check_for_check(opp_turn)
-
-                        element.setAttribute('poncolor', location_poncolor)
-                        element.setAttribute('ponvalue', location_ponvalue)
-                        location.innerHTML = `<img src="/static/images/pons/${location_poncolor}_${location_ponvalue}.png" alt="">`
-                        element.setAttribute('poncolor', pon_split[0])
-                        element.setAttribute('ponvalue', pon_split[1])
-                        element.innerHTML = `<img src="/static/images/pons/${pon_split[0]}_${pon_split[1]}.png" alt="">`
-                        if(!result)
-                            return false
+            if (pon[0] == turn) {
+                let temp_locations = calculate_move(position, pons_position)
+                for(const loc of temp_locations) {
+                    if (loc == king_element.id) {
+                        console.log('check')
+                        if (Object.keys(location_to_pon).length) {
+                            location_to_pon[loc] = pon
+                            return {
+                                check: true,
+                                double_check: true,
+                                location_to_pon: location_to_pon,
+                            }
+                        }
+                        else {
+                            location_to_pon[loc] = pon
+                        }
                     }
                 }
             }
         }
-        return true
-    }
-    
-    const check_for_check = (opp_turn) => {
-        let element;
-        danger_locations = []
-        for(const [position, pon] of Object.entries(pons_position)) {
-            if (pon.includes(turn)) {
-                element = document.getElementById(position)
-                danger_locations = danger_locations.concat(calculate_move(element))
+        if (Object.keys(location_to_pon).length) {
+            return {
+                check: true,
+                double_check: false,
+                location_to_pon: location_to_pon
             }
         }
-        element = document.getElementById(king_positions[opp_turn])
-        console.log('element:', element.id)
-        for(let pos of danger_locations) {
-            console.log('locations:', pos.id)
+        return {
+            check: false,
+            double_check: false,
+            location_to_pon: location_to_pon
         }
-        if (danger_locations.includes(element)) {
-            check = true
-            element.className = 'danger'
-            return true
-        }
-        return false
+    }
+
+    const check_for_check_mate = (turn, opp_turn, pons_position) => {
+        
     }
     
     const new_move = (data) => {
@@ -826,36 +867,42 @@
         destination_position.setAttribute('ponvalue', moves[moves.length-1].after_ponvalue)
         destination_position.innerHTML = `<img src="/static/images/pons/${response.poncolor}_${moves[moves.length-1].after_ponvalue}.png" alt="">`
         king_positions = response.king_positions
+        let opp_turn = get_toggle_turn()
+        let king_element = document.getElementById(king_positions[opp_turn])
         moved_checks = response.moved_checks
         pons_position = response.pons_position
-        opp_turn = get_toggle_turn()
-        if(check_for_check(opp_turn)) {
-            if(check_for_check_mate(opp_turn)) {
-                console.log('check mate')
-            }
+        if (check) {
+            source_position.className = source_position.getAttribute('color')
+            check = false
+        }
+        let check_response = check_for_check(turn, opp_turn, pons_position, king_positions)
+        console.log(check_response)
+        if (check_response.check) {
+            king_element.className = 'danger'
+            check = true
         }
         toggle_turn()
     }
     
-    chatSocket.onmessage = (event) => {
+    gameSocket.onmessage = (event) => {
         const data = JSON.parse(event.data);
         if (data.type == 'move') {
             new_move(data)
         }
     };
 
-    chatSocket.onclose = (event) => {
+    gameSocket.onclose = (event) => {
         console.error('websocket closed unexpectedly');
         connection_status = document.getElementById('connection_status')
         connection_status.innerHTML = "Connection Status: <b class='offline'>OFFLINE</b>"
     };
 
-    chatSocket.onopen = (event) => {
+    gameSocket.onopen = (event) => {
         connection_status = document.getElementById('connection_status')
         connection_status.innerHTML = "Connection Status: <b class='online'>ONLINE</b>"
     };
 
-    chatSocket.onerror = (event) => {
+    gameSocket.onerror = (event) => {
         
     }
     

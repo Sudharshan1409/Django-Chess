@@ -80,7 +80,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from django.contrib import messages
 from django.http import HttpRequest
 
-class ChatConsumer(AsyncWebsocketConsumer):
+class GameConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.game_id = self.scope['url_route']['kwargs']['game_id']
         self.game_group_name = 'game_%s' % self.game_id
