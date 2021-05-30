@@ -63,6 +63,26 @@ def generate_moved_checks():
             'castling': False,
         }
     }
+    
+def generate_movable_positions_pos():
+    return {
+        'a1': [],
+        'b1': [ 'c3', 'a3' ],
+        'c1': [],
+        'd1': [],
+        'e1': [],
+        'f1': [],
+        'g1': [ 'h3', 'f3' ],
+        'h1': [],
+        'a2': [ 'a3', 'a4' ],
+        'b2': [ 'b3', 'b4' ],
+        'c2': [ 'c3', 'c4' ],
+        'd2': [ 'd3', 'd4' ],
+        'e2': [ 'e3', 'e4' ],
+        'f2': [ 'f3', 'f4' ],
+        'g2': [ 'g3', 'g4' ],
+        'h2': [ 'h3', 'h4' ]
+        }
 
 def generate_moves():
     return []
@@ -77,6 +97,7 @@ class Game(models.Model):
     king_positions = models.JSONField(default=generate_king_positions)
     moved_checks = models.JSONField(default=generate_moved_checks)
     moves = models.JSONField(default=generate_moves)
+    movable_positions_pos = models.JSONField(default=generate_movable_positions_pos)
     
     def get_absolute_url(self):
         return reverse('game:newgame',kwargs = {'pk':self.pk})

@@ -144,8 +144,12 @@
     let pon_clicked = null
     let color = 'light'
     let movable_positions = []
+    let movable_positions_pos = JSON.parse("{{ game_details.movable_positions_pos|convertJSON }}")
     let previous_clicked_pon = null
-    let check = false
+    let check = {
+        white: false,
+        black: false
+    }
 
     var window_location = window.location
     var wsprotocol = 'ws://'
@@ -481,13 +485,22 @@
         return moves
     }
 
+    const check_color_change = () => {
+        if (check[turn]) {
+            document.getElementById(king_positions[turn]).className = 'danger'
+        }
+        else if (check[get_toggle_turn()]) {
+            document.getElementById(king_positions[turn]).className = 'danger'
+        }
+    }
+    
     const calculate_move = (pon_clicked, pons_position) => {
         let can_move = []
         let element = null
         let element_poncolor = null
         let ponvalue = pons_position[pon_clicked][1]
         let poncolor = pons_position[pon_clicked][0]
-        let ld_ponvalue
+        let ld_ponvalue;
         let ld_poncolor
 
         if (ponvalue == 'soldier') {
@@ -527,25 +540,21 @@
                     can_move = move_down(1, true, pon_clicked[1], pon_clicked[0], poncolor, pons_position)
                 }
                 let left_diagonal = move_left_bottom(1, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position)[0]
-                console.log('left diagonal', left_diagonal)
                 if (left_diagonal) {
                     ld_ponvalue = pons_position[left_diagonal][1]
                     ld_poncolor = pons_position[left_diagonal][0]
                 }
 
                 let right_diagonal = move_right_bottom(1, false, pon_clicked[1], pon_clicked[0], poncolor, pons_position)[0]
-                console.log('right diagonal', right_diagonal)
                 if (right_diagonal) {
                     rd_ponvalue = pons_position[right_diagonal][1]
                     rd_poncolor = pons_position[right_diagonal][0]
                 }
 
                 if (left_diagonal && ld_poncolor && ld_poncolor != poncolor) {
-                    console.log('left if ran')
                     can_move.push(left_diagonal)
                 }
                 if (right_diagonal && rd_poncolor && rd_poncolor != poncolor) {
-                    console.log('right if ran')
                     can_move.push(right_diagonal)
                 }
             }
@@ -644,8 +653,26 @@
         }
         return can_move
     }
-        console.log("🚀 ~ file: game.html ~ line 647 ~ ld_poncolor", ld_poncolor)
 
+    const calculate_movable_positions = (pon_clicked, pons_position, king_positions, turn, opp_turn) => {
+        let movable_positions = calculate_move(pon_clicked, pons_position)
+        let movable_positions_copy = [...movable_positions]
+        for(let move of movable_positions_copy) {
+            let pons_position_copy = JSON.parse(JSON.stringify(pons_position))
+            let king_position = king_positions[turn]
+            if (pons_position[pon_clicked][1] == 'king') {
+                king_position = move
+            }
+            pons_position_copy[move] = pons_position_copy[pon_clicked]
+            pons_position_copy[pon_clicked] = ['', '']
+            let check_result = check_for_check(opp_turn, pons_position_copy, king_position)
+            if (check_result.check) {
+                movable_positions.splice(movable_positions.indexOf(move), 1)
+            }
+        }
+        return movable_positions
+    }
+    
     const board_clicked = (position) => {
         if(player_details[turn].pk == player_details.current.pk) {
             let get_selected = document.getElementsByClassName('selected')
@@ -663,27 +690,10 @@
                     pos_element.innerHTML = ''
                 }
             }
+            check_color_change()
             if(pon_clicked_element.getAttribute('poncolor') == turn) {
                 pon_clicked_element.className = "selected"
-                movable_positions = calculate_move(pon_clicked, pons_position)
-                console.log('moves', movable_positions)
-                let movable_positions_copy = [...movable_positions]
-                let opp_turn = get_toggle_turn()
-                for(let move of movable_positions_copy) {
-                    let pons_position_copy = JSON.parse(JSON.stringify(pons_position))
-                    king_positions_copy = JSON.parse(JSON.stringify(king_positions))
-                    if (pons_position[pon_clicked][1] == 'king') {
-                        king_positions_copy[turn] = move
-                    }
-                    console.log('move', move)
-                    pons_position_copy[move] = pons_position_copy[pon_clicked]
-                    pons_position_copy[pon_clicked] = ['', '']
-                    let check_result = check_for_check(opp_turn, turn, pons_position_copy, king_positions_copy)
-                    console.log('check result', check_result)
-                    if (check_result.check) {
-                        movable_positions.splice(movable_positions.indexOf(move), 1)
-                    }
-                }
+                movable_positions = movable_positions_pos[pon_clicked]
                 for (const move of movable_positions) {
                     let move_element = document.getElementById(move)
                     if(pons_position[move][0]) {
@@ -717,7 +727,7 @@
                         pons_position[previous_clicked_pon] = ['', '']
                         if(ponvalue == 'soldier') {
                             if(moved_position[1] == '1' || moved_position[1] == '8') {
-                                pons_position[moved_position] = poncolor + ',' + 'queen'
+                                pons_position[moved_position] = [poncolor, 'queen']
                                 move.after_ponvalue = 'queen'
                             }
                         }
@@ -729,6 +739,13 @@
                             if (!moved_checks[poncolor][ponvalue][previous_clicked_pon[0]])
                                 moved_checks[poncolor][ponvalue][previous_clicked_pon[0]] = true
                         }
+
+                        let check_response = check_for_check(turn, pons_position, king_positions[get_toggle_turn()])
+                        if (check_response.check) {
+                            check[get_toggle_turn()] = true
+                        }
+                        let check_mate_response = mate_or_move(get_toggle_turn(), turn, pons_position, king_positions, moved_checks)
+
                         moves.push(move)
                         let message = {
                             source: previous_clicked_pon,
@@ -739,6 +756,8 @@
                             moved_checks: moved_checks,
                             pons_position: pons_position,
                             moves: moves,
+                            check: check,
+                            movable_positions_pos: movable_positions_pos,
                         }
                         gameSocket.send(JSON.stringify({
                             'message': JSON.stringify(message),
@@ -791,6 +810,7 @@
                 element.setAttribute('poncolor', pon[0])
             }
         }
+        check_color_change()
     }
 
     const get_toggle_turn = () => {
@@ -810,20 +830,18 @@
         return count
     }
     
-    const check_for_check = (turn, opp_turn, pons_position, king_positions) => {
+    const check_for_check = (opp_turn, pons_position, position) => {
         let element;
         let danger_locations = []
-        let location_to_pon = {}
-        console.log(pons_position, turn, opp_turn, king_positions)
-        let king_element = document.getElementById(king_positions[opp_turn])
+        let location_to_pon = []
+        let king_element = document.getElementById(position)
         for(const [position, pon] of Object.entries(pons_position)) {
-            if (pon[0] == turn) {
+            if (pon[0] == opp_turn) {
                 let temp_locations = calculate_move(position, pons_position)
                 for(const loc of temp_locations) {
                     if (loc == king_element.id) {
-                        console.log('check')
-                        if (Object.keys(location_to_pon).length) {
-                            location_to_pon[loc] = pon
+                        if (location_to_pon.length) {
+                            location_to_pon.push(position)
                             return {
                                 check: true,
                                 double_check: true,
@@ -831,13 +849,13 @@
                             }
                         }
                         else {
-                            location_to_pon[loc] = pon
+                            location_to_pon.push(position)
                         }
                     }
                 }
             }
         }
-        if (Object.keys(location_to_pon).length) {
+        if (location_to_pon.length) {
             return {
                 check: true,
                 double_check: false,
@@ -851,8 +869,53 @@
         }
     }
 
-    const check_for_check_mate = (turn, opp_turn, pons_position) => {
-        
+    const mate_or_move = (turn, opp_turn, pons_position, king_positions, moved_checks) => {
+        let movable_positions = []
+        movable_positions_pos = {}
+        for(const [position, pon] of Object.entries(pons_position)) {
+            if (pon[0] == turn) {
+                let positions = calculate_movable_positions(position, pons_position, king_positions, turn, opp_turn)
+                movable_positions = movable_positions.concat(positions)
+                movable_positions_pos[position] = positions
+            }
+        }
+        if (movable_positions) {
+            console.log('movable_positions', movable_positions)
+            console.log('movable_positions_pos', JSON.stringify(movable_positions_pos))
+            if (!check[turn] & !moved_checks[turn].king && !moved_checks[turn].rook.a) {
+                let ival = king_positions[turn][1]
+                console.log("🚀 ~ file: game.html ~ line 642 ~ ival", ival)
+                console.log('hello')
+                console.log(Boolean(pons_position['a'+ival][0] == turn))
+                console.log(Boolean(pons_position['a'+ival][1] == 'rook'))
+                console.log(Boolean(!pons_position['d'+ival][0]))
+                console.log(Boolean(!pons_position['c'+ival][0]))
+                console.log(Boolean(!pons_position['b'+ival][0]))
+                console.log(Boolean(!check_for_check(opp_turn, pons_position, 'd'+ival).check))
+                console.log(Boolean(!check_for_check(opp_turn, pons_position, 'c'+ival).check))
+                if (
+                    pons_position['a'+ival][0] == turn && 
+                    pons_position['a'+ival][1] == 'rook' && 
+                    !pons_position['d'+ival][0] && 
+                    !pons_position['c'+ival][0] && 
+                    !pons_position['b'+ival][0] && 
+                    !check_for_check(opp_turn, pons_position, 'd'+ival).check && 
+                    !check_for_check(opp_turn, pons_position, 'c'+ival).check
+                    ) {
+                    movable_positions_pos[king_positions[turn]].push(('c' + ival))
+                }
+            }
+            return 
+        }
+        else {
+            if(check[turn]) {
+                console.log('check mate')
+            }
+            else {
+                console.log('stall mate')
+            }
+            return
+        }
     }
     
     const new_move = (data) => {
@@ -867,21 +930,20 @@
         destination_position.setAttribute('ponvalue', moves[moves.length-1].after_ponvalue)
         destination_position.innerHTML = `<img src="/static/images/pons/${response.poncolor}_${moves[moves.length-1].after_ponvalue}.png" alt="">`
         king_positions = response.king_positions
-        let opp_turn = get_toggle_turn()
-        let king_element = document.getElementById(king_positions[opp_turn])
+        let king_element_turn = document.getElementById(king_positions[turn])
+        let king_element_oppturn = document.getElementById(king_positions[get_toggle_turn()])
         moved_checks = response.moved_checks
         pons_position = response.pons_position
-        if (check) {
+        check = response.check
+        console.log('check', check)
+        movable_positions_pos = response.movable_positions_pos
+        if (check[turn]) {
             source_position.className = source_position.getAttribute('color')
-            check = false
-        }
-        let check_response = check_for_check(turn, opp_turn, pons_position, king_positions)
-        console.log(check_response)
-        if (check_response.check) {
-            king_element.className = 'danger'
-            check = true
+            king_element_turn.className = king_element_turn.getAttribute('color')
+            check[turn] = false
         }
         toggle_turn()
+        check_color_change()
     }
     
     gameSocket.onmessage = (event) => {
