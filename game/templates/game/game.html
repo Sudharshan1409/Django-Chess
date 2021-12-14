@@ -745,7 +745,7 @@
                             check[get_toggle_turn()] = true
                         }
                         let check_mate_response = mate_or_move(get_toggle_turn(), turn, pons_position, king_positions, moved_checks)
-
+                        console.log('check mate response', check_mate_response)
                         moves.push(move)
                         let message = {
                             source: previous_clicked_pon,
@@ -870,6 +870,7 @@
     }
 
     const mate_or_move = (turn, opp_turn, pons_position, king_positions, moved_checks) => {
+        console.log('mate or move')
         let movable_positions = []
         movable_positions_pos = {}
         for(const [position, pon] of Object.entries(pons_position)) {
@@ -879,9 +880,10 @@
                 movable_positions_pos[position] = positions
             }
         }
-        if (movable_positions) {
+        if (movable_positions.length) {
             console.log('movable_positions', movable_positions)
             console.log('movable_positions_pos', JSON.stringify(movable_positions_pos))
+            console.log('moved_checks', moved_checks)
             if (!check[turn] & !moved_checks[turn].king && !moved_checks[turn].rook.a) {
                 let ival = king_positions[turn][1]
                 console.log("🚀 ~ file: game.html ~ line 642 ~ ival", ival)
